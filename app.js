@@ -17,7 +17,12 @@ app.use(session({
 }));
 
 
-
+var numQues;
+connection.query('Select count(*) as numQues from question;', (error, results) => {
+    if (error) throw error;
+    numQues = results[0].numQues;
+    console.log(numQues);
+});
 
 //Home Route
 app.get('/', (req, res) => {
@@ -79,37 +84,25 @@ app.route('/Gameplay')
             res.redirect('/Login');
         else {
             // Render question
-            var query2 = 'select question,userScore from user natural join question where userLevel=qid and user_id =?;';
+            var query2 = 'select question,userLevel from user natural join question where userLevel=qid and user_id =?;';
             connection.query(query2, [req.session.user_id], (error, results, fields) => {
                 if (error) throw error;
-                console.log("Score is" + results[0].userScore);
-                res.render('gameplay.ejs', { Score: results[0].userScore, Question: results[0].question });  //Rendering question and score
+                console.log("Score is" + results[0].userLevel * 10);
+                res.render('gameplay.ejs', { Score: ((results[0].userLevel - 1) * 10), Question: results[0].question });  //Rendering question and score
 
             });
         }
     })
     .post((req, res) => {
-        var query1 = 'select answer from user natural join question where userLevel=qid and user_id =?;';    //selects correct answer
+        var query1 = 'select answer,userLevel from user natural join question where userLevel=qid and user_id =?;';    //selects correct answer
         connection.query(query1, [req.session.user_id], (error, results1, fields) => {
             if (error) throw error;
             console.log(results1[0]);
-            if (results1[0].answer === req.body.answer) {
-                var query2 = 'select userName from user where user_id=? AND userLevel <(select count(*) from question); ';// Finds if theres still more questions left
-                connection.query(query2, [req.session.user_id], (error, results2, fields) => {
-                    if (results2[0] = undefined) {
-                        console.log("Yaha aa rha hai");
-                        res.redirect('/Gameover'); //If no more question left that means user won the game
-                    } else if (results2[0]) {
-                        console.log(results2[0]);
-                        var query3 = 'UPDATE user SET userScore = userScore+1, userLevel=userLevel+1 WHERE user_id=?;';
-                        connection.query(query3, [req.session.user_id], (error, results3, fields) => {     //if answer is correct it updates score and level
-                            if (error) throw error;
-                            res.redirect('/Gameplay');
-                        });
-
-                    }
-                    else if (error) throw error;
-
+            if (results1[0].answer === req.body.answer && results1[0].userLevel < numQues) {
+                var query3 = 'UPDATE user SET userLevel=userLevel+1 WHERE user_id=?;';
+                connection.query(query3, [req.session.user_id], (error, results3, fields) => {     //if answer is correct it updates score and level
+                    if (error) throw error;
+                    res.redirect('/Gameplay');
                 });
             }
             else
@@ -120,7 +113,25 @@ app.route('/Gameplay')
 
 //XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXx
 
+app.route('/Gameover')
+    .get((req, res) => {
+        if (req.session.user_id == null)
+            res.redirect('/Login');
+        else {
+            var userScore;
+            var query1 = 'select userLevel from user where user_id=?';
+            connection.query(query1, [req.session.user_id], (err, results) => {
+                userScore = results[0].userLevel * 10;
+            });
 
+            var query2 = 'select userName,userLevel from user;';
+            connection.query(query2, (err, results) => {
+                if (err) throw err;
+                res.render('gameover.ejs', { userScore: userScore, users: results });
+            });
+        }
+
+    });
 
 
 
