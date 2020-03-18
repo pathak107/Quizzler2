@@ -17,6 +17,8 @@ app.use(session({
 }));
 
 
+
+
 //Home Route
 app.get('/', (req, res) => {
     res.render('index.ejs');
@@ -76,47 +78,42 @@ app.route('/Gameplay')
         if (req.session.user_id == null)
             res.redirect('/Login');
         else {
-
-            var query1 = 'select userName from user where user_id =? AND userLevel >(select count(*) from question);';
-            connection.query(query1, [req.session.user_id], (error, results, fields) => {
+            // Render question
+            var query2 = 'select question,userScore from user natural join question where userLevel=qid and user_id =?;';
+            connection.query(query2, [req.session.user_id], (error, results, fields) => {
                 if (error) throw error;
-                else if (results[0]) {
-                    console.log(results[0]);
-                    res.redirect('/Gameover');
-                }
-                else {
-                    var query2 = 'select question,userScore from user natural join question where userLevel=qid and user_id =?;';
-                    connection.query(query2, [req.session.user_id], (error, results, fields) => {
-                        if (error) throw error;
-                        console.log("Score is" + results[0].userScore);
-                        res.render('gameplay.ejs', { Score: results[0].userScore, Question: results[0].question });
-
-                    });
-                }
+                console.log("Score is" + results[0].userScore);
+                res.render('gameplay.ejs', { Score: results[0].userScore, Question: results[0].question });  //Rendering question and score
 
             });
-
-
-
-
         }
     })
     .post((req, res) => {
-        var query1 = 'select answer from user natural join question where userLevel=qid and user_id =?;';
-        connection.query(query1, [req.session.user_id], (error, results, fields) => {
+        var query1 = 'select answer from user natural join question where userLevel=qid and user_id =?;';    //selects correct answer
+        connection.query(query1, [req.session.user_id], (error, results1, fields) => {
             if (error) throw error;
-            if (results[0].answer === req.body.answer) {
-                var query2 = 'UPDATE user SET userScore = userScore+1, userLevel=userLevel+1 WHERE user_id=?;';
-                connection.query(query2, [req.session.user_id], (error, results, fields) => {
-                    if (error) throw error;
+            console.log(results1[0]);
+            if (results1[0].answer === req.body.answer) {
+                var query2 = 'select userName from user where user_id=? AND userLevel <(select count(*) from question); ';// Finds if theres still more questions left
+                connection.query(query2, [req.session.user_id], (error, results2, fields) => {
+                    if (results2[0] = undefined) {
+                        console.log("Yaha aa rha hai");
+                        res.redirect('/Gameover'); //If no more question left that means user won the game
+                    } else if (results2[0]) {
+                        console.log(results2[0]);
+                        var query3 = 'UPDATE user SET userScore = userScore+1, userLevel=userLevel+1 WHERE user_id=?;';
+                        connection.query(query3, [req.session.user_id], (error, results3, fields) => {     //if answer is correct it updates score and level
+                            if (error) throw error;
+                            res.redirect('/Gameplay');
+                        });
+
+                    }
+                    else if (error) throw error;
+
                 });
-                res.redirect('/Gameplay');
             }
             else
-                res.redirect('/Gameover');
-
-
-
+                res.redirect('/Gameover');     // otherwise it sends to gameover route
         });
     });
 
