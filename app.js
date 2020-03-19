@@ -1,3 +1,4 @@
+require('dotenv').config()
 const express = require('express');
 const bodyParser = require('body-parser');
 const session = require('express-session');
@@ -12,7 +13,7 @@ app.use(express.static('public'));
 
 //Session initialiazation
 app.use(session({
-    secret: 'keyboard cat',
+    secret: process.env.SESSION_SECRET,
     resave: false,
     saveUninitialized: true,
     cookie: { secure: false }
@@ -92,8 +93,6 @@ app.route('/Register')
                 res.redirect('/Gameplay');
             });
         });
-
-        
     });
 //XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
 
