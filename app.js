@@ -2,6 +2,8 @@ const express = require('express');
 const bodyParser = require('body-parser');
 const session = require('express-session');
 const connection = require('./Database/connection.js');
+const bcrypt = require('bcrypt');
+const saltRounds = 10;
 
 const app = express();
 app.use(bodyParser.urlencoded({ extended: true }));
@@ -38,18 +40,31 @@ app.route('/Login')
         res.render('login.ejs', { loginStatus: "Enter to Authenticate" });
     })
     .post((req, res) => {
-        var query1 = 'select user_id from user where userName =? And userPassword =?;';
-        connection.query(query1, [req.body.userName, req.body.password], (error, results, fields) => {
+
+
+        var query1 = 'select user_id,userPassword from user where userName =?;';
+        connection.query(query1, [req.body.userName], (error, results, fields) => {
             if (results[0] == undefined)
                 res.render('login.ejs', { loginStatus: "Wrong Email or Password. Try Again! " });
 
-            else if (results[0].user_id) {
-                console.log('Authenticated successfully');
-                console.log(results[0].user_id);
-                req.session.user_id = results[0].user_id;
-                res.redirect('/Gameplay');
+            else if(error) throw error;
+
+            else {
+                bcrypt.compare(req.body.password, results[0].userPassword, function (err, result) {
+                    // result == true
+                    if (result == true) {
+                        console.log('Authenticated successfully');
+                        console.log(results[0].user_id);
+                        req.session.user_id = results[0].user_id;
+                        res.redirect('/Gameplay');
+                    }
+                    else {
+                        res.render('login.ejs', { loginStatus: "Wrong Email or Password. Try Again! " });
+                    }
+                });
             }
-            else throw error;
+
+
 
         });
     });
@@ -62,17 +77,23 @@ app.route('/Register')
         res.render('register.ejs');
     })
     .post((req, res) => {
-        var query1 = 'insert into user (userName,userPassword) values (?,?);';
-        connection.query(query1, [req.body.userName, req.body.password], (error, results, fields) => {
-            if (error) throw error;
-            console.log('Value inserted successfuly');
+        bcrypt.hash(req.body.password, saltRounds, function (err, hash) {
+            // Store hash in your password DB.
+            if (err) throw err;
+            var query1 = 'insert into user (userName,userPassword) values (?,?);';
+            connection.query(query1, [req.body.userName, hash], (error, results, fields) => {
+                if (error) throw error;
+                console.log('Value inserted successfuly');
+            });
+            connection.query('SELECT count(*) as uid from user', function (error, results, fields) {
+                if (error) throw error;
+                req.session.user_id = results[0].uid;
+                console.log("User id is " + req.session.user_id);
+                res.redirect('/Gameplay');
+            });
         });
-        connection.query('SELECT count(*) as uid from user', function (error, results, fields) {
-            if (error) throw error;
-            req.session.user_id = results[0].uid;
-            console.log("User id is " + req.session.user_id);
-            res.redirect('/Gameplay');
-        });
+
+        
     });
 //XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
 
