@@ -37,7 +37,7 @@
                             <% for(var i =0 ; i< users.length ;i++) { %>
                             <tr>
                                 <td style="margin: 20%;"><h4 class="title" style="color:aqua;"><%=users[i].userName%></h4></td>
-                                <td style="text-align: right; padding-left: 20%;"><h3 class="title"><%=users[i].userLevel * 10%></h3></td>
+                                <td style="text-align: right; padding-left: 20%;"><h3 class="title"><%=(users[i].userLevel-1) * 10%></h3></td>
                             </tr>
                             <%}%>
                         </table>

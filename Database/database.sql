@@ -10,7 +10,7 @@ primary key(qid)
 create table user(
 user_id int auto_increment,
 userName varchar(50),
-userPassword varchar(50),
+userPassword varchar(200),
 userLevel int default 1,
 userScore int default 0,
 primary key(user_id),
