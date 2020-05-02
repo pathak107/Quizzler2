@@ -115,7 +115,7 @@ app.route('/Gameplay')
             var query2 = 'select question,userLevel from user natural join question where userLevel=qid and user_id =?;';
             db.get(query2, [req.session.user_id], (error, results) => {
                 if (error) throw error;
-                console.log("Score is" + results.userLevel * 10);
+                console.log("Score is" + (results.userLevel-1) * 10);
                 res.render('gameplay.ejs', { Score: ((results.userLevel - 1) * 10), Question: results.question });  //Rendering question and score
 
             });
